@@ -144,6 +144,28 @@ def adamax_step(dweights: np.ndarray, m: np.ndarray, u: float, t: int, beta_1: f
 
     return p, m, u
 
+def nadam_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, t: int, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    m = beta_1 * m + (1 - beta_1) * dweights
+    v = beta_2 * v + (1 - beta_2) * dweights**2
+
+    m_hat = m / (1 - beta_1**t)
+    v_hat = v / (1 - beta_2**t)
+    
+    p = (beta_1 * m_hat + ((1 - beta_1)/(1 - beta_1**t))*dweights) / (np.sqrt(v_hat) + epsilon)
+
+    return p, m, v
+
+
+def amsgrad_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, v_hat: np.ndarray, t: int, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    m = beta_1 * m + (1 - beta_1) * dweights
+    v = beta_2 * v + (1 - beta_2) * dweights**2
+
+    v_hat = np.maximum(v_hat, v)
+
+    p =  m / (np.sqrt(v_hat) + epsilon)
+
+    return p, m, v, v_hat
+
 
 def adabelief_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, t: int, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     m = beta_1 * m + (1 - beta_1) * dweights
@@ -193,7 +215,7 @@ def adadelta_step(dweights: np.ndarray, v: np.ndarray, d: np.ndarray, alpha: flo
     return p, v, d
 
 
-x=np.array([[2, 1, 3], [-2, 1, -3]])
+'''x=np.array([[2, 1, 3], [-2, 1, -3]])
 #x=np.array([2, 1, 3])
 w=np.array([1, 1, 1])
 y=np.array([0, 1])
@@ -208,4 +230,4 @@ print(cost)
 dweights = derivative_cost_wrt_params(x=x, w=w, y=y)
 print(dweights)
 
-print(x.T, x)
+print(x.T, x)'''
