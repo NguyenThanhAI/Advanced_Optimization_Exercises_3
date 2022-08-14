@@ -58,26 +58,27 @@ def compute_cost(x: np.ndarray, w: np.ndarray, y: np.ndarray) -> float:
 
     pre_y = predict(x=x, w=w)
     err = pre_y - y
-    loss = np.sum(err**2)
+    loss = np.mean(err**2)
 
     return loss
 
 
 def derivative_cost_wrt_params(x: np.ndarray, w: np.ndarray, y: np.ndarray) -> np.ndarray:
-    
+    n = x.shape[0]
     if len(x.shape) == 1:
         x = np.expand_dims(x, axis=0)
     #print(np.matmul(x.T, x))
-    grad = 2 * np.matmul(w, np.matmul(x.T, x)) - 2 * np.matmul(y, x)
+    grad = (2 * np.matmul(w, np.matmul(x.T, x)) - 2 * np.matmul(y, x))/n
 
     return grad
 
 
 def hessian_wrt_params(x: np.ndarray):
+    n = x.shape[0]
     if len(x.shape) == 1:
         x = np.expand_dims(x, axis=0)
 
-    hessian = 2 * np.matmul(x.T, x)
+    hessian = (2 * np.matmul(x.T, x))/n
 
     return hessian
 
