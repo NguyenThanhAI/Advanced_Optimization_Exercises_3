@@ -49,10 +49,12 @@ def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> 
     if normalize == "minmax":
 
         x = (x - np.min(x, axis=0, keepdims=True))/(np.max(x, axis=0, keepdims=True) - np.min(x, axis=0, keepdims=True))
+        y = (y - np.min(y))/ (np.max(y) - np.min(y))
 
     elif normalize == "standardize":
         
         x = (x-np.mean(x, axis=0, keepdims=True))/np.std(x, axis=0, keepdims=True)
+        x = (y - np.mean(y)) / np.std(y)
 
     else:
         raise ValueError("No normalizing initializer name {}".format(normalize))
@@ -139,12 +141,13 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
 
         if lr_schdule == "backtracking":
             alpha, inner_count = backtracking_line_search(x=x_train, w=weights, y=y_train, p=-dweights, rho=rho, alpha=init_alpha, c=c_1)
+            inner_count_list.append(inner_count)
         elif lr_schdule == "fixed":
             alpha = copy.deepcopy(init_alpha)
+            inner_count_list.append(0)
         else:
             raise ValueError("{} scheduler is not supported".format(lr_schdule))
 
-        inner_count_list.append(inner_count)
         
         if optimizer.lower() == "gd":
             p = dweights
@@ -333,7 +336,14 @@ if __name__ == "__main__":
             result_gradient_norm_list[step_length][optimizer] = gradient_norm_list
             result_inner_count_list[step_length][optimizer] = inner_count_list
 
-    results = {"weights": result_weights, "min_val_cost_weights": result_min_val_cost_weights, 
-              "train_cost": result_train_cost_list, "val_cost": result_val_cost_list,
+    results = {"weights": result_weights, "min_train_cost_wegihts": result_min_train_cost_weights,
+               "min_train_cost": result_min_train_cost, "min_val_cost": result_min_val_cost, 
+               "min_val_cost_weights": result_min_val_cost_weights, 
+               "train_cost": result_train_cost_list, "val_cost": result_val_cost_list,
                "time_epoch": result_time_epoch_list,
-               "wolf_II": result_wolfe_II_list, "goldstein": result_goldstein_list}
+               "wolf_II": result_wolfe_II_list, "goldstein": result_goldstein_list,
+               "delta_weights_norm": result_delta_weights_norm_list,
+               "delta_train_cost": result_delta_train_cost,
+               "delta_val_cost": result_delta_val_cost,
+               "gradient_norm": result_gradient_norm_list,
+               "inner_count": result_inner_count_list}
