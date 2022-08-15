@@ -131,16 +131,10 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
     start_timestamp = time.time()
 
     for epoch in tqdm(range(num_epochs)):
-        index = np.arange(x_train.shape[0])
-        np.random.shuffle(index)
+        
         epoch_start = time.time()
 
-        index_batch = index[:batch_size]
-        x_batch = x_train[index_batch]
-        y_batch = y_train[index_batch]
-
-        dweights = derivative_cost_wrt_params(x=x_batch, w=weights, y=y_batch)
-
+        dweights = derivative_cost_wrt_params(x=x_train, w=weights, y=y_train)
         
         if optimizer.lower() == "gd":
             p = dweights
