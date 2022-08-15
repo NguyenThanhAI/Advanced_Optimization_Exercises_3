@@ -141,18 +141,6 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
 
         dweights = derivative_cost_wrt_params(x=x_batch, w=weights, y=y_batch)
 
-        if lr_schdule == "backtracking":
-            alpha, inner_count = backtracking_line_search(x=x_train, w=weights, y=y_train, p=-dweights, rho=rho, alpha=init_alpha, c=c_1)
-            inner_count_list.append(inner_count)
-        elif lr_schdule == "fixed":
-            alpha = copy.deepcopy(init_alpha)
-            inner_count_list.append(0)
-        elif lr_schdule == "inverse_decay":
-            alpha = inverse_decay(init_alpha=init_alpha, t=t)
-            inner_count_list.append(0)
-        else:
-            raise ValueError("{} scheduler is not supported".format(lr_schdule))
-
         
         if optimizer.lower() == "gd":
             p = dweights
@@ -167,7 +155,7 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
         elif optimizer.lower() == "rmsprop":
             p, v = rmsprop_step(dweights=dweights, v=v, beta_2=0.9, epsilon=1e-8)
         elif optimizer.lower() == "adadelta":
-            p, v, d = adadelta_step(dweights=dweights, v=v, d=d, alpha=alpha, beta_2=0.9, epsilon=1e-8)
+            p, v, d = adadelta_step(dweights=dweights, v=v, d=d, alpha=init_alpha, beta_2=0.9, epsilon=1e-8)
         elif optimizer.lower() == "adamax":
             p, m, u = adamax_step(dweights=dweights, m=m, u=u, t=t, 
                                   beta_1=0.9, beta_2=0.99, epsilon=1e-8)
@@ -182,13 +170,26 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
         else:
             raise ValueError("No optimizer name {}".format(optimizer))
 
-        wolfe_II_list.append(check_wolfe_II(x=x_train, w=weights, y=y_train, alpha=alpha, p=-p, c_2=c_2))
-        goldstein_list.append(check_goldstein(x=x_train, w=weights, y=y_train, alpha=alpha, p=-p, c=c))
+        if lr_schdule == "backtracking":
+            alpha, inner_count = backtracking_line_search(x=x_train, w=weights, y=y_train, p=-p, rho=rho, alpha=init_alpha, c=c_1)
+            inner_count_list.append(inner_count)
+        elif lr_schdule == "fixed":
+            alpha = copy.deepcopy(init_alpha)
+            inner_count_list.append(0)
+        elif lr_schdule == "inverse_decay":
+            alpha = inverse_decay(init_alpha=init_alpha, t=t)
+            inner_count_list.append(0)
+        else:
+            raise ValueError("{} scheduler is not supported".format(lr_schdule))
+        
         weights = weights - alpha * p
         t += 1
 
         epoch_end = time.time()
         time_epoch_list.append(epoch_end - epoch_start)
+
+        wolfe_II_list.append(check_wolfe_II(x=x_train, w=weights, y=y_train, alpha=alpha, p=-p, c_2=c_2))
+        goldstein_list.append(check_goldstein(x=x_train, w=weights, y=y_train, alpha=alpha, p=-p, c=c))
 
         train_cost = compute_cost(x=x_train, w=weights, y=y_train)
         val_cost = compute_cost(x=x_val, w=weights, y=y_val)
@@ -206,13 +207,13 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
 
         dweights = derivative_cost_wrt_params(x=x_train, w=weights, y=y_train)
         delta_weights_norm_list.append(np.linalg.norm(weights - prev_weights))
-        delta_train_cost.append((train_cost - prev_train_cost)/train_cost)
-        delta_val_cost.append((val_cost - prev_val_cost)/val_cost)
+        delta_train_cost.append(np.abs(train_cost - prev_train_cost)/train_cost)
+        delta_val_cost.append(np.abs(val_cost - prev_val_cost)/val_cost)
         gradient_norm_list.append(np.linalg.norm(dweights))
 
         if (epoch + 1) % 10000 == 0:
             #print(epoch, alpha, train_cost, val_cost, train_acc, val_acc, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost), np.linalg.norm(dweights))
-            print(epoch, train_cost, val_cost, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost), np.linalg.norm(dweights))
+            print(epoch, train_cost, val_cost, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost)/train_cost, np.linalg.norm(dweights))
 
         prev_weights = copy.deepcopy(weights)
         prev_train_cost = copy.deepcopy(train_cost)
@@ -325,7 +326,7 @@ if __name__ == "__main__":
                                                                                                                                                                                                                                                                                                           x_val=x_val, y_val=y_val, init_weights=copy.deepcopy(start_weights),
                                                                                                                                                                                                                                                                                                           optimizer=optimizer, num_epochs=num_epochs,
                                                                                                                                                                                                                                                                                                           c_1=c_1, c_2=c_2, c=c,
-                                                                                                                                                                                                                                                                                                          rho=rho, init_alpha=step_length, lr_schdule="fixed")                                           
+                                                                                                                                                                                                                                                                                                          rho=rho, init_alpha=step_length, lr_schdule="backtracking")                                           
 
             result_weights[step_length][optimizer] = weights
             result_min_train_cost[step_length][optimizer] = min_train_cost
@@ -343,7 +344,7 @@ if __name__ == "__main__":
             result_gradient_norm_list[step_length][optimizer] = gradient_norm_list
             result_inner_count_list[step_length][optimizer] = inner_count_list
 
-    results = {"weights": result_weights, "min_train_cost_wegihts": result_min_train_cost_weights,
+    results = {"weights": result_weights, "min_train_cost_weights": result_min_train_cost_weights,
                "min_train_cost": result_min_train_cost, "min_val_cost": result_min_val_cost, 
                "min_val_cost_weights": result_min_val_cost_weights, 
                "train_cost": result_train_cost_list, "val_cost": result_val_cost_list,
