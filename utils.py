@@ -91,6 +91,16 @@ def newton_step(x: np.ndarray, dweights: np.ndarray):
     return p
 
 
+def accelerated_gradient_step(x: np.ndarray, w: np.ndarray, y: np.ndarray, prev_w, t: int):
+    if t == 1:
+        p = derivative_cost_wrt_params(x=x, w=w, y=y)
+        return p, w
+    #print(w, prev_w)
+    v = w + ((t - 1) * (w - prev_w))/(t + 2)
+    p = derivative_cost_wrt_params(x=x, w=v, y=y)
+    return p, v
+
+
 #def dpf_step(H: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
 

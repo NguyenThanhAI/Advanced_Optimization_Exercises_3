@@ -22,7 +22,7 @@ from utils import AverageMeter, amsgrad_step, exponential_moving_average, predic
     backtracking_line_search, check_wolfe_II, check_goldstein, \
     adam_step, adamax_step, adabelief_step, adagrad_step, \
     rmsprop_step, momentum_step, adadelta_step, nadam_step, inverse_decay, \
-    newton_step
+    newton_step, accelerated_gradient_step
 
 
 
@@ -128,16 +128,21 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
     d = np.zeros_like(weights, dtype=np.float32)
     u = 0.
 
+    prev_w = np.zeros_like(weights, dtype=np.float32)
+
     start_timestamp = time.time()
 
     for epoch in tqdm(range(num_epochs)):
-        
+
         epoch_start = time.time()
 
         dweights = derivative_cost_wrt_params(x=x_train, w=weights, y=y_train)
         
         if optimizer.lower() == "gd":
             p = dweights
+        elif optimizer.lower() == "accelerated":
+            p, v = accelerated_gradient_step(x=x_train, w=weights, y=y_train, prev_w=prev_w, t=t)
+            prev_w = copy.deepcopy(weights)
         #elif optimizer.lower() == "newton":
         #    p = newton_step(x=x_train, dweights=dweights)
         elif optimizer.lower() == "adam":
@@ -165,7 +170,10 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
             raise ValueError("No optimizer name {}".format(optimizer))
 
         if lr_schdule == "backtracking":
-            alpha, inner_count = backtracking_line_search(x=x_train, w=weights, y=y_train, p=-p, rho=rho, alpha=init_alpha, c=c_1)
+            if optimizer.lower() == "accelerated":
+                alpha, inner_count = backtracking_line_search(x=x_train, w=v, y=y_train, p=-p, rho=rho, alpha=init_alpha, c=c_1)
+            else:
+                alpha, inner_count = backtracking_line_search(x=x_train, w=weights, y=y_train, p=-p, rho=rho, alpha=init_alpha, c=c_1)
             inner_count_list.append(inner_count)
         elif lr_schdule == "fixed":
             alpha = copy.deepcopy(init_alpha)
@@ -176,7 +184,10 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
         else:
             raise ValueError("{} scheduler is not supported".format(lr_schdule))
         
-        weights = weights - alpha * p
+        if optimizer.lower() == "accelerated":
+            weights = v - alpha * p
+        else:
+            weights = weights - alpha * p
         t += 1
 
         epoch_end = time.time()
@@ -283,7 +294,7 @@ if __name__ == "__main__":
 
     step_length_list = [1e-4, 1e-3, 1e-2, 1e-1, 1, 2, 5, 10]
 
-    optimizer_list = ["gd", "Adam", "Momentum", "Adagrad", "RMSProp", "Adadelta", "Adamax", "Nadam", "AMSGrad", "AdaBelief"]
+    optimizer_list = ["gd", "Accelerated", "Adam", "Momentum", "Adagrad", "RMSProp", "Adadelta", "Adamax", "Nadam", "AMSGrad", "AdaBelief"]
 
     x_train, y_train, x_val, y_val, x_test, y_test = create_data(csv_path=csv_path, normalize=normalize, use_bias=use_bias)
 
