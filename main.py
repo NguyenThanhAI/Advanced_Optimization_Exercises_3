@@ -21,7 +21,8 @@ from sklearn.model_selection import train_test_split
 from utils import AverageMeter, amsgrad_step, exponential_moving_average, predict, compute_cost, derivative_cost_wrt_params, hessian_wrt_params, \
     backtracking_line_search, check_wolfe_II, check_goldstein, \
     adam_step, adamax_step, adabelief_step, adagrad_step, \
-    rmsprop_step, momentum_step, adadelta_step, nadam_step
+    rmsprop_step, momentum_step, adadelta_step, nadam_step, inverse_decay, \
+    newton_step
 
 
 
@@ -49,16 +50,17 @@ def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> 
     if normalize == "minmax":
 
         x = (x - np.min(x, axis=0, keepdims=True))/(np.max(x, axis=0, keepdims=True) - np.min(x, axis=0, keepdims=True))
-        y = (y - np.min(y))/ (np.max(y) - np.min(y))
+        #y = (y - np.min(y))/ (np.max(y) - np.min(y))
 
     elif normalize == "standardize":
         
         x = (x-np.mean(x, axis=0, keepdims=True))/np.std(x, axis=0, keepdims=True)
-        x = (y - np.mean(y)) / np.std(y)
+        #y = (y - np.mean(y)) / np.std(y)
 
     else:
         raise ValueError("No normalizing initializer name {}".format(normalize))
 
+    y = y / (1e6)
     if use_bias:
         ones = np.ones(shape=[x.shape[0], 1], dtype=np.float32)
         x = np.append(x, ones, axis=1)
@@ -145,12 +147,17 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
         elif lr_schdule == "fixed":
             alpha = copy.deepcopy(init_alpha)
             inner_count_list.append(0)
+        elif lr_schdule == "inverse_decay":
+            alpha = inverse_decay(init_alpha=init_alpha, t=t)
+            inner_count_list.append(0)
         else:
             raise ValueError("{} scheduler is not supported".format(lr_schdule))
 
         
         if optimizer.lower() == "gd":
             p = dweights
+        #elif optimizer.lower() == "newton":
+        #    p = newton_step(x=x_train, dweights=dweights)
         elif optimizer.lower() == "adam":
             p, m, v = adam_step(dweights=dweights, m=m, v=v, t=t, beta_1=0.5, beta_2=0.9, epsilon=1e-8)
         elif optimizer.lower() == "momentum":
@@ -347,3 +354,7 @@ if __name__ == "__main__":
                "delta_val_cost": result_delta_val_cost,
                "gradient_norm": result_gradient_norm_list,
                "inner_count": result_inner_count_list}
+
+    with open(os.path.join(save_dir, "results.pkl"), "wb") as f:
+        pickle.dump(results, f)
+        f.close()

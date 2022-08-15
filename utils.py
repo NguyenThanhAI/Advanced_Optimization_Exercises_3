@@ -1,5 +1,6 @@
 from typing import List, Tuple, Optional
 import numpy as np
+import scipy
 
 
 class AverageMeter(object):
@@ -83,6 +84,16 @@ def hessian_wrt_params(x: np.ndarray):
     return hessian
 
 
+def newton_step(x: np.ndarray, dweights: np.ndarray):
+    hessian = hessian_wrt_params(x=x)
+    p = scipy.linalg.solve(hessian, dweights)
+    return p
+
+
+#def dpf_step(H: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+
+
+
 def backtracking_line_search(x: np.ndarray, w: np.ndarray, y: np.ndarray, p: np.ndarray, rho: float=0.9, alpha: float=5, c: float=1e-3) -> Tuple[float, int]:
     # Note that p = -grad we use + alpha, if p = grad we use - alpha
     gradient = derivative_cost_wrt_params(x=x, w=w, y=y)
@@ -98,6 +109,9 @@ def backtracking_line_search(x: np.ndarray, w: np.ndarray, y: np.ndarray, p: np.
         inner_count += 1
 
     return alpha, inner_count
+
+def inverse_decay(init_alpha: float, t: int) -> float:
+    return init_alpha / t
 
 
 def check_wolfe_II(x: np.ndarray, w: np.ndarray, y: np.ndarray, alpha: float, p: np.ndarray, c_2: float=0.9) -> bool:
@@ -230,5 +244,8 @@ print(cost)
 
 dweights = derivative_cost_wrt_params(x=x, w=w, y=y)
 print(dweights)
+
+hessian = hessian_wrt_params(x=x)
+print(hessian)
 
 print(x.T, x)'''
