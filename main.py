@@ -22,7 +22,8 @@ from utils import AverageMeter, amsgrad_step, exponential_moving_average, predic
     backtracking_line_search, check_wolfe_II, check_goldstein, \
     adam_step, adamax_step, adabelief_step, adagrad_step, \
     rmsprop_step, momentum_step, adadelta_step, nadam_step, inverse_decay, \
-    newton_step, accelerated_gradient_step, radam_step, bfgs_post_step, dfp_post_step
+    newton_step, accelerated_gradient_step, radam_step, bfgs_post_step, dfp_post_step, \
+    avagrad_step
 
 
 
@@ -152,6 +153,8 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
             prev_w = copy.deepcopy(weights)
         elif optimizer.lower() == "adam":
             p, m, v = adam_step(dweights=dweights, m=m, v=v, t=t, beta_1=0.5, beta_2=0.9, epsilon=1e-8)
+        elif optimizer.lower() == "avagrad":
+            p, m, v = avagrad_step(dweights=dweights, m=m, v=v, beta_1=0.5, beta_2=0.9, epsilon=1e-8)
         elif optimizer.lower() == "radam":
             p, m, v = radam_step(dweights=dweights, m=m, v=v, t=t, beta_1=0.5, beta_2=0.9, epsilon=1e-8)
         elif optimizer.lower() == "momentum":
@@ -309,7 +312,7 @@ if __name__ == "__main__":
 
     step_length_list = [1e-4, 1e-3, 1e-2, 1e-1, 1, 2, 5, 10]
 
-    optimizer_list = ["gd", "Accelerated", "BFGS", "DFP", "Adam", "RAdam", "Momentum", "Adagrad", "RMSProp", "Adadelta", "Adamax", "Nadam", "AMSGrad", "AdaBelief"]
+    optimizer_list = ["gd", "Accelerated", "BFGS", "DFP", "Adam", "Avagrad", "RAdam", "Momentum", "Adagrad", "RMSProp", "Adadelta", "Adamax", "Nadam", "AMSGrad", "AdaBelief"]
 
     x_train, y_train, x_val, y_val, x_test, y_test = create_data(csv_path=csv_path, normalize=normalize, use_bias=use_bias)
 

@@ -192,6 +192,19 @@ def adam_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, t: int, beta_1
     return p, m, v
 
 
+def avagrad_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> np.ndarray:
+    d = dweights.shape[0]
+    m = beta_1 * m + (1 - beta_1) * dweights
+
+    eta = 1 / (np.sqrt(v) + epsilon)
+
+    p = (eta / np.linalg.norm(eta/np.sqrt(d))) * m
+
+    v = beta_2 * v + (1 - beta_2) * dweights**2
+
+    return p, m, v
+
+
 def radam_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, t: int, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     rho_inf = (2 / (1 - beta_2)) - 1
 
