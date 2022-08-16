@@ -101,8 +101,39 @@ def accelerated_gradient_step(x: np.ndarray, w: np.ndarray, y: np.ndarray, prev_
     return p, v
 
 
-#def dpf_step(H: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def bfgs_post_step(H: np.ndarray, s: np.ndarray, y: np.ndarray) -> np.ndarray:
+    assert H.shape[0] == H.shape[1] == s.shape[0] == s.shape[0]
+    denom = (np.matmul(y, s.T))
+    if np.abs(denom) < 1e-8:
+        rho = 1 / (1e-8)
+    else:
+        rho = 1/(np.matmul(y, s.T))
+    I = np.eye(s.shape[0], dtype=np.float32)
 
+    left = I - rho * np.matmul(s[:, np.newaxis], y[np.newaxis,:])
+    right = I - rho * np.matmul(y[:, np.newaxis], s[np.newaxis, :])
+
+    right_sum = rho * np.matmul(s[:, np.newaxis], s[np.newaxis, :])
+
+    left_sum = np.matmul(np.matmul(left, H), right)
+
+    new_H = left_sum + right_sum
+
+    return new_H
+
+
+def dfp_post_step(H: np.ndarray, s: np.ndarray, y: np.ndarray) -> np.ndarray:
+    assert H.shape[0] == H.shape[1] == s.shape[0] == s.shape[0]
+
+    nom_2 = np.matmul(np.matmul(H, y[:, np.newaxis]), np.matmul(y[np.newaxis, :], H))
+    denom_2 = np.matmul(y, np.matmul(H, y))
+
+    nom_3 = np.matmul(s[:, np.newaxis], s[np.newaxis, :])
+    denom_3 = np.matmul(y, s.T)
+
+    new_H = H - nom_2 / denom_2 + nom_3 / denom_3
+
+    return new_H
 
 
 def backtracking_line_search(x: np.ndarray, w: np.ndarray, y: np.ndarray, p: np.ndarray, rho: float=0.9, alpha: float=5, c: float=1e-3) -> Tuple[float, int]:
@@ -275,6 +306,9 @@ print(cost)
 
 dweights = derivative_cost_wrt_params(x=x, w=w, y=y)
 print(dweights)
+
+grad = (2 * np.linalg.multi_dot([w, x.T, x]) - 2 * np.matmul(y, x))/x.shape[0]
+print(grad)
 
 hessian = hessian_wrt_params(x=x)
 print(hessian)
