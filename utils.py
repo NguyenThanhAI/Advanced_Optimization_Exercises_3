@@ -161,6 +161,26 @@ def adam_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, t: int, beta_1
     return p, m, v
 
 
+def radam_step(dweights: np.ndarray, m: np.ndarray, v: np.ndarray, t: int, beta_1: float=0.5, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    rho_inf = (2 / (1 - beta_2)) - 1
+
+    m = beta_1 * m + (1 - beta_1) * dweights
+    v = beta_2 * v + (1 - beta_2) * dweights**2
+
+    m_hat = m / (1 - beta_1**t)
+
+    rho = rho_inf - (2 * t * beta_2**t) / (1 - beta_2**t)
+
+    if rho > 4:
+        v_hat = np.sqrt(v / (1 - beta_2**t))
+        r = np.sqrt(((rho - 4) * (rho - 2) * rho_inf)/((rho_inf - 4) * (rho_inf - 2) * rho))
+        p = (r * m_hat) / (v_hat + epsilon)
+    else:
+        p = m_hat
+
+    return p, m, v
+
+
 def adamax_step(dweights: np.ndarray, m: np.ndarray, u: float, t: int, beta_1: float=0.9, beta_2: float=0.99, epsilon: float=1e-8) -> Tuple[np.ndarray, np.ndarray, float]:
 
     m = beta_1 * m + (1 - beta_1) * dweights

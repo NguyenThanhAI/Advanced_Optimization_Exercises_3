@@ -22,7 +22,7 @@ from utils import AverageMeter, amsgrad_step, exponential_moving_average, predic
     backtracking_line_search, check_wolfe_II, check_goldstein, \
     adam_step, adamax_step, adabelief_step, adagrad_step, \
     rmsprop_step, momentum_step, adadelta_step, nadam_step, inverse_decay, \
-    newton_step, accelerated_gradient_step
+    newton_step, accelerated_gradient_step, radam_step
 
 
 
@@ -147,6 +147,8 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
         #    p = newton_step(x=x_train, dweights=dweights)
         elif optimizer.lower() == "adam":
             p, m, v = adam_step(dweights=dweights, m=m, v=v, t=t, beta_1=0.5, beta_2=0.9, epsilon=1e-8)
+        elif optimizer.lower() == "radam":
+            p, m, v = radam_step(dweights=dweights, m=m, v=v, t=t, beta_1=0.5, beta_2=0.9, epsilon=1e-8)
         elif optimizer.lower() == "momentum":
             p, m = momentum_step(dweights=dweights, m=m, beta_1=0.9)
         elif optimizer.lower() == "adagrad":
@@ -294,7 +296,7 @@ if __name__ == "__main__":
 
     step_length_list = [1e-4, 1e-3, 1e-2, 1e-1, 1, 2, 5, 10]
 
-    optimizer_list = ["gd", "Accelerated", "Adam", "Momentum", "Adagrad", "RMSProp", "Adadelta", "Adamax", "Nadam", "AMSGrad", "AdaBelief"]
+    optimizer_list = ["gd", "Accelerated", "Adam", "RAdam", "Momentum", "Adagrad", "RMSProp", "Adadelta", "Adamax", "Nadam", "AMSGrad", "AdaBelief"]
 
     x_train, y_train, x_val, y_val, x_test, y_test = create_data(csv_path=csv_path, normalize=normalize, use_bias=use_bias)
 
