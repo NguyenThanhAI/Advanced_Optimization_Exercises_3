@@ -438,6 +438,8 @@ if __name__ == "__main__":
                "delta_val_cost": result_delta_val_cost,
                "train_gradient_norm": result_train_gradient_norm_list,
                "val_gradient_norm": result_val_gradient_norm_list,
+               "train_r2": result_train_r_2_list, "train_adjust_r2": train_adjust_r_2_list,
+               "val_r2": result_val_r_2_list, "val_adjust_r2": result_val_adjust_r_2_list,
                "inner_count": result_inner_count_list}
 
     end_time = time.time()
