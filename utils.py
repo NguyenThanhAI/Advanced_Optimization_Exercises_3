@@ -309,6 +309,22 @@ def adadelta_step(dweights: np.ndarray, v: np.ndarray, d: np.ndarray, alpha: flo
 
     return p, v, d
 
+def calculate_R(x: np.ndarray, w: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
+    pre_y = predict(x=x, w=w)
+    rss = np.mean((y - pre_y)**2)
+    sst = np.mean((y - np.mean(y))**2)
+
+    r_2 = 1 - rss / sst
+
+    n = x.shape[0]
+    assert x.shape[0] == y.shape[0]
+
+    d = w.shape[0]
+
+    adjusted_r_2 = 1 - ((n - 1) * (1 - r_2)) / (n - d)
+
+    return r_2, adjusted_r_2
+
 
 '''x=np.array([[2, 1, 3], [-2, 1, -3]])
 #x=np.array([2, 1, 3])

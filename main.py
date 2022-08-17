@@ -23,7 +23,7 @@ from utils import AverageMeter, amsgrad_step, exponential_moving_average, predic
     adam_step, adamax_step, adabelief_step, adagrad_step, \
     rmsprop_step, momentum_step, adadelta_step, nadam_step, inverse_decay, \
     newton_step, accelerated_gradient_step, radam_step, bfgs_post_step, dfp_post_step, \
-    avagrad_step
+    avagrad_step, calculate_R
 
 
 
@@ -116,6 +116,10 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
     delta_val_cost = []
     train_gradient_norm_list = []
     val_gradient_norm_list = []
+    train_r_2_list = []
+    val_r_2_list = []
+    train_adjust_r_2_list = []
+    val_adjust_r_2_list = []
     inner_count_list = []
 
     weights = init_weights
@@ -236,16 +240,22 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
         train_gradient_norm_list.append(np.linalg.norm(dweights))
         val_dweights = derivative_cost_wrt_params(x=x_val, w=weights, y=y_val)
         val_gradient_norm_list.append(np.linalg.norm(val_dweights))
+        train_r_2, train_adjust_r_2 = calculate_R(x=x_train, w=weights, y=y_train)
+        val_r_2, val_adjust_r_2 = calculate_R(x=x_val, w=weights, y=y_val)
+        train_r_2_list.append(train_r_2)
+        train_adjust_r_2_list.append(train_adjust_r_2)
+        val_r_2_list.append(val_r_2)
+        val_adjust_r_2_list.append(val_adjust_r_2)
 
         if (epoch + 1) % 10000 == 0:
             #print(epoch, alpha, train_cost, val_cost, train_acc, val_acc, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost), np.linalg.norm(dweights))
-            print(epoch, train_cost, val_cost, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost)/train_cost, np.linalg.norm(dweights), np.linalg.norm(val_dweights))
+            print(epoch, train_cost, val_cost, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost)/train_cost, np.linalg.norm(dweights), np.linalg.norm(val_dweights), train_r_2, train_adjust_r_2, val_r_2, val_adjust_r_2)
 
         prev_weights = copy.deepcopy(weights)
         prev_train_cost = copy.deepcopy(train_cost)
         prev_val_cost = copy.deepcopy(val_cost)
 
-    return weights, min_train_cost, min_train_cost_weights, min_val_cost, min_val_cost_weights, train_cost_list, val_cost_list, time_epoch_list, wolfe_II_list, goldstein_list, delta_weights_norm_list, delta_train_cost, delta_val_cost, train_gradient_norm_list, val_gradient_norm_list, inner_count_list
+    return weights, min_train_cost, min_train_cost_weights, min_val_cost, min_val_cost_weights, train_cost_list, val_cost_list, time_epoch_list, wolfe_II_list, goldstein_list, delta_weights_norm_list, delta_train_cost, delta_val_cost, train_gradient_norm_list, val_gradient_norm_list, train_r_2_list, train_adjust_r_2_list, val_r_2_list, val_adjust_r_2_list, inner_count_list
 
 '''min_train_cost = np.inf
 min_train_cost_weight = None
@@ -309,6 +319,10 @@ if __name__ == "__main__":
     result_delta_val_cost = {}
     result_train_gradient_norm_list = {}
     result_val_gradient_norm_list  = {}
+    result_train_r_2_list = {}
+    result_train_adjust_r_2_list = {}
+    result_val_r_2_list = {}
+    result_val_adjust_r_2_list = {}
     result_inner_count_list = {}
 
     if not os.path.exists(save_dir):
@@ -344,6 +358,10 @@ if __name__ == "__main__":
         result_delta_val_cost[step_length] = {}
         result_train_gradient_norm_list[step_length] = {}
         result_val_gradient_norm_list[step_length]  = {}
+        result_train_r_2_list[step_length] = {}
+        result_train_adjust_r_2_list[step_length] = {}
+        result_val_r_2_list[step_length] = {}
+        result_val_adjust_r_2_list[step_length] = {}
         result_inner_count_list[step_length] = {}
 
         print("Step length {}".format(step_length))
@@ -352,11 +370,13 @@ if __name__ == "__main__":
 
             print("Optimizer {}".format(optimizer))
 
-            weights, min_train_cost, min_train_cost_weights, min_val_cost, min_val_cost_weights, train_cost_list, val_cost_list, time_epoch_list, wolfe_II_list, goldstein_list, delta_weights_norm_list, delta_train_cost, delta_val_cost, train_gradient_norm_list, val_gradient_norm_list, inner_count_list = train_gradient_descent(x_train=x_train, y_train=y_train,
-                                                                                                                                                                                                                                                                                                                                        x_val=x_val, y_val=y_val, init_weights=copy.deepcopy(start_weights),
-                                                                                                                                                                                                                                                                                                                                        optimizer=optimizer, num_epochs=num_epochs,
-                                                                                                                                                                                                                                                                                                                                        c_1=c_1, c_2=c_2, c=c,
-                                                                                                                                                                                                                                                                                                                                        rho=rho, init_alpha=step_length, lr_schdule="backtracking")                                           
+            weights, min_train_cost, min_train_cost_weights, min_val_cost, min_val_cost_weights, train_cost_list, val_cost_list, time_epoch_list, \
+            wolfe_II_list, goldstein_list, delta_weights_norm_list, delta_train_cost, delta_val_cost, train_gradient_norm_list, val_gradient_norm_list, train_r_2_list, train_adjust_r_2_list, val_r_2_list, \
+            val_adjust_r_2_list, inner_count_list = train_gradient_descent(x_train=x_train, y_train=y_train,
+                                                                           x_val=x_val, y_val=y_val, init_weights=copy.deepcopy(start_weights),
+                                                                           optimizer=optimizer, num_epochs=num_epochs,
+                                                                           c_1=c_1, c_2=c_2, c=c,
+                                                                           rho=rho, init_alpha=step_length, lr_schdule="backtracking")                                           
 
             result_weights[step_length][optimizer] = weights
             result_min_train_cost[step_length][optimizer] = min_train_cost
@@ -373,6 +393,10 @@ if __name__ == "__main__":
             result_delta_val_cost[step_length][optimizer] = delta_val_cost
             result_train_gradient_norm_list[step_length][optimizer] = train_gradient_norm_list
             result_val_gradient_norm_list[step_length][optimizer] = val_gradient_norm_list
+            result_train_r_2_list[step_length][optimizer] = train_r_2_list
+            result_train_adjust_r_2_list[step_length][optimizer] = train_adjust_r_2_list
+            result_val_r_2_list[step_length][optimizer] = val_r_2_list
+            result_val_adjust_r_2_list[step_length][optimizer] = val_adjust_r_2_list
             result_inner_count_list[step_length][optimizer] = inner_count_list
 
     results = {"weights": result_weights, "min_train_cost_weights": result_min_train_cost_weights,
