@@ -131,6 +131,11 @@ def dfp_post_step(H: np.ndarray, s: np.ndarray, y: np.ndarray) -> np.ndarray:
     nom_3 = np.matmul(s[:, np.newaxis], s[np.newaxis, :])
     denom_3 = np.matmul(y, s.T)
 
+    if np.abs(denom_2) < 1e-8:
+        denom_2 = 1e-8
+    if np.abs(denom_3) < 1e-8:
+        denom_3 = 1e-8
+
     new_H = H - nom_2 / denom_2 + nom_3 / denom_3
 
     return new_H
