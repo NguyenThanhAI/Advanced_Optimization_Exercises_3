@@ -40,7 +40,7 @@ def get_args():
     return args
 
 
-def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+'''def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     df = pd.read_csv(csv_path)
 
     x = df[["sqft_living", "sqft_lot", "sqft_above", "sqft_basement", "sqft_living", "sqft_lot15"]].to_numpy(dtype=np.float32)
@@ -76,7 +76,51 @@ def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> 
     x_val, y_val = x[val_indices], y[val_indices]
     x_test, y_test = x[test_indices], y[test_indices]
 
-    return x_train, y_train, x_val, y_val, x_test, y_test
+    return x_train, y_train, x_val, y_val, x_test, y_test'''
+
+
+def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    df = pd.read_csv(csv_path)
+    n = df.shape[0]
+
+    yrs_old = np.zeros(n)
+    yrs_reno = np.zeros(n)
+    for i in range(n):
+        year_sell = int(df['date'][i][-4:])
+        yrs_old[i] = year_sell - df['yr_built'][i]
+        if df['yr_renovated'][i] == 0:
+            yrs_reno[i] = 0
+        else:
+            yrs_reno[i] = year_sell - df['yr_renovated'][i]
+
+    y = np.array(df['price'])
+
+    yrs_old = yrs_old.reshape((n, 1))
+    yrs_reno = yrs_reno.reshape((n, 1))
+    x = df.to_numpy(df.drop(columns=['id', 'date', 'price', 'yr_built', \
+                                       'yr_renovated'], inplace=True)) # 'zipcode', 'lat', 'long
+    x = np.concatenate((x, yrs_old, yrs_reno), axis=1)
+    if normalize == "minmax":
+
+        x = (x - np.min(x, axis=0, keepdims=True))/(np.max(x, axis=0, keepdims=True) - np.min(x, axis=0, keepdims=True))
+        #y = (y - np.min(y))/ (np.max(y) - np.min(y))
+
+    elif normalize == "standardize":
+        
+        x = (x-np.mean(x, axis=0, keepdims=True))/np.std(x, axis=0, keepdims=True)
+        #y = (y - np.mean(y)) / np.std(y)
+
+    else:
+        raise ValueError("No normalizing initializer name {}".format(normalize))
+
+    y = y / (1e6)
+    if use_bias:
+        ones = np.ones(shape=[x.shape[0], 1], dtype=np.float32)
+        x = np.append(x, ones, axis=1)
+
+    x_train, y_train, x_val, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
+
+    return x_train, y_train, x_val, y_val
 
 
 def init_weights(x: np.ndarray, use_bias: bool=True, initializer: str="xavier") -> np.ndarray:
@@ -334,9 +378,10 @@ if __name__ == "__main__":
 
     #optimizer_list = ["gd", "Accelerated", "BFGS", "DFP", "Adam", "Avagrad", "RAdam", "Momentum", 
     #                  "Adagrad", "RMSProp", "Adadelta", "Adamax", "Nadam", "AMSGrad", "AdaBelief"]
-    optimizer_list = ["gd", "Accelerated", "BFGS", "DFP"]
+    optimizer_list = ["gd", "Newton", "Accelerated", "BFGS", "DFP"]
 
-    x_train, y_train, x_val, y_val, x_test, y_test = create_data(csv_path=csv_path, normalize=normalize, use_bias=use_bias)
+    #x_train, y_train, x_val, y_val, x_test, y_test = create_data(csv_path=csv_path, normalize=normalize, use_bias=use_bias)
+    x_train, x_val, y_train, y_val = create_data(csv_path=csv_path, normalize=normalize, use_bias=use_bias)
 
     #print(x_train.shape, y_train.shape, x_val.shape, y_val.shape, x_test.shape, y_test.shape)
 
