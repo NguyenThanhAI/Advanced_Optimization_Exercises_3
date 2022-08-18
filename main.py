@@ -125,8 +125,8 @@ def get_args():
 
 def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     df = pd.read_csv(csv_path)
-    x = df.drop("price", axis=1).to_numpy(dtype=np.float32)
-    y = df["price"].values.astype(np.float32)
+    y = np.array(df['price'])
+    x = df.to_numpy(df.drop("price", axis=1,  inplace=True))
 
     y = y / (1e6)
     if use_bias:
