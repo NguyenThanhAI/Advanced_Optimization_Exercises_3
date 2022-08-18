@@ -33,7 +33,7 @@ def get_args():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--csv_path", type=str, default=r"kc_house_data.csv")
+    parser.add_argument("--csv_path", type=str, default=r"kc_house_data_cleaned.csv")
 
     args = parser.parse_args()
 
@@ -79,7 +79,7 @@ def get_args():
     return x_train, y_train, x_val, y_val, x_test, y_test'''
 
 
-def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+'''def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     df = pd.read_csv(csv_path)
     n = df.shape[0]
 
@@ -120,7 +120,22 @@ def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> 
 
     x_train, y_train, x_val, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
 
-    return x_train, y_train, x_val, y_val
+    return x_train, y_train, x_val, y_val'''
+
+
+def create_data(csv_path: str, normalize: str="minmax", use_bias: bool=True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    df = pd.read_csv(csv_path)
+    x = df.drop("price", axis=1).to_numpy(dtype=np.float32)
+    y = df["price"].values.astype(np.float32)
+
+    y = y / (1e6)
+    if use_bias:
+        ones = np.ones(shape=[x.shape[0], 1], dtype=np.float32)
+        x = np.append(x, ones, axis=1)
+
+    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
+
+    return x_train, x_val, y_train, y_val
 
 
 def init_weights(x: np.ndarray, use_bias: bool=True, initializer: str="xavier") -> np.ndarray:
