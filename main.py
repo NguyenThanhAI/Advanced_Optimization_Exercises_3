@@ -238,10 +238,10 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
             inner_count_list.append(inner_count)
         elif lr_schdule == "fixed":
             alpha = copy.deepcopy(init_alpha)
-            inner_count_list.append(0)
+            inner_count_list.append(1)
         elif lr_schdule == "inverse_decay":
             alpha = inverse_decay(init_alpha=init_alpha, t=t)
-            inner_count_list.append(0)
+            inner_count_list.append(1)
         else:
             raise ValueError("{} scheduler is not supported".format(lr_schdule))
         

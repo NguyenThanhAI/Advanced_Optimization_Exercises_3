@@ -164,7 +164,7 @@ def backtracking_line_search(x: np.ndarray, w: np.ndarray, y: np.ndarray, p: np.
     f_old = compute_cost(x=x, w=w, y=y)
     right_term = np.sum(gradient * p)
     #while f_new > f_old + c * alpha * np.sum(gradient * p):
-    inner_count: int = 0
+    inner_count: int = 1
     while f_new > f_old + c * alpha * right_term:
         alpha = rho * alpha
         #print("f_new: {}, f_old: {}, alpha: {}".format(f_new, f_old, alpha))
