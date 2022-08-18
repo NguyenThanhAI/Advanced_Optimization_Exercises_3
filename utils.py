@@ -64,6 +64,22 @@ def compute_cost(x: np.ndarray, w: np.ndarray, y: np.ndarray) -> float:
     return loss
 
 
+def compute_mae(x: np.ndarray, w: np.ndarray, y: np.ndarray) -> float:
+    assert len(x.shape) <= 2
+    assert len(y.shape) == 1
+    assert x.shape[0] == y.shape[0]
+    if len(x.shape) > 1:
+        assert w.shape[0] == x.shape[1]
+    else:
+        assert w.shape[0] == x.shape[0]
+
+    pre_y = predict(x=x, w=w)
+    err = pre_y - y
+    mae = np.mean(np.abs(err))
+
+    return mae
+
+
 def derivative_cost_wrt_params(x: np.ndarray, w: np.ndarray, y: np.ndarray, clipped: bool=True) -> np.ndarray:
     n = x.shape[0]
     if len(x.shape) == 1:

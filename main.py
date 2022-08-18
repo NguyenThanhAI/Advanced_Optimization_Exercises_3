@@ -23,7 +23,7 @@ from utils import AverageMeter, amsgrad_step, exponential_moving_average, predic
     adam_step, adamax_step, adabelief_step, adagrad_step, \
     rmsprop_step, momentum_step, adadelta_step, nadam_step, inverse_decay, \
     newton_step, accelerated_gradient_step, radam_step, bfgs_post_step, dfp_post_step, \
-    avagrad_step, calculate_R
+    avagrad_step, calculate_R, compute_mae
 
 
 
@@ -152,6 +152,8 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
     min_val_cost_weights = None
     train_cost_list = []
     val_cost_list = []
+    train_mae_list = []
+    val_mae_list = []
     time_epoch_list = []
     wolfe_II_list = []
     goldstein_list = []
@@ -269,6 +271,11 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
         train_cost_list.append(train_cost)
         val_cost_list.append(val_cost)
 
+        train_mae = compute_mae(x=x_train, w=weights, y=y_train)
+        val_mae = compute_mae(x=x_val, w=weights, y=y_val)
+        train_mae_list.append(train_mae)
+        val_mae_list.append(val_mae)
+
         if train_cost < min_train_cost:
             min_train_cost = copy.deepcopy(train_cost)
             min_train_cost_weights = copy.deepcopy(weights)
@@ -293,13 +300,13 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
 
         if (epoch + 1) % 10000 == 0:
             #print(epoch, alpha, train_cost, val_cost, train_acc, val_acc, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost), np.linalg.norm(dweights))
-            print(epoch, train_cost, val_cost, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost)/train_cost, np.linalg.norm(dweights), np.linalg.norm(val_dweights), train_r_2, train_adjust_r_2, val_r_2, val_adjust_r_2)
+            print(epoch, train_cost, val_cost, train_mae, val_mae, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost)/train_cost, np.linalg.norm(dweights), np.linalg.norm(val_dweights), train_r_2, train_adjust_r_2, val_r_2, val_adjust_r_2)
 
         prev_weights = copy.deepcopy(weights)
         prev_train_cost = copy.deepcopy(train_cost)
         prev_val_cost = copy.deepcopy(val_cost)
 
-    return weights, min_train_cost, min_train_cost_weights, min_val_cost, min_val_cost_weights, train_cost_list, val_cost_list, time_epoch_list, wolfe_II_list, goldstein_list, delta_weights_norm_list, delta_train_cost, delta_val_cost, train_gradient_norm_list, val_gradient_norm_list, train_r_2_list, train_adjust_r_2_list, val_r_2_list, val_adjust_r_2_list, inner_count_list
+    return weights, min_train_cost, min_train_cost_weights, min_val_cost, min_val_cost_weights, train_cost_list, val_cost_list, time_epoch_list, wolfe_II_list, goldstein_list, delta_weights_norm_list, delta_train_cost, delta_val_cost, train_gradient_norm_list, val_gradient_norm_list, train_r_2_list, train_adjust_r_2_list, val_r_2_list, val_adjust_r_2_list, train_mae_list, val_mae_list, inner_count_list
 
 '''min_train_cost = np.inf
 min_train_cost_weight = None
@@ -355,6 +362,8 @@ if __name__ == "__main__":
     result_min_val_cost_weights = {}
     result_train_cost_list = {}  
     result_val_cost_list = {}
+    result_train_mae_list = {}  
+    result_val_mae_list = {}
     result_time_epoch_list = {}
     result_wolfe_II_list = {}
     result_goldstein_list = {}
@@ -398,6 +407,8 @@ if __name__ == "__main__":
         result_min_val_cost_weights[schedule] = {}
         result_train_cost_list[schedule] = {}  
         result_val_cost_list[schedule] = {}
+        result_train_mae_list[schedule] = {}  
+        result_val_mae_list[schedule] = {}
         result_time_epoch_list[schedule] = {}
         result_wolfe_II_list[schedule] = {}
         result_goldstein_list[schedule] = {}
@@ -423,6 +434,8 @@ if __name__ == "__main__":
             result_min_val_cost_weights[schedule][step_length] = {}
             result_train_cost_list[schedule][step_length] = {}  
             result_val_cost_list[schedule][step_length] = {}
+            result_train_mae_list[schedule][step_length] = {}  
+            result_val_mae_list[schedule][step_length] = {}
             result_time_epoch_list[schedule][step_length] = {}
             result_wolfe_II_list[schedule][step_length] = {}
             result_goldstein_list[schedule][step_length] = {}
@@ -444,12 +457,13 @@ if __name__ == "__main__":
                 print("Optimizer {}/{}/{}".format(schedule, step_length, optimizer))
 
                 weights, min_train_cost, min_train_cost_weights, min_val_cost, min_val_cost_weights, train_cost_list, val_cost_list, time_epoch_list, \
-                wolfe_II_list, goldstein_list, delta_weights_norm_list, delta_train_cost, delta_val_cost, train_gradient_norm_list, val_gradient_norm_list, train_r_2_list, train_adjust_r_2_list, val_r_2_list, \
-                val_adjust_r_2_list, inner_count_list = train_gradient_descent(x_train=x_train, y_train=y_train,
-                                                                               x_val=x_val, y_val=y_val, init_weights=copy.deepcopy(start_weights),
-                                                                               optimizer=optimizer, num_epochs=num_epochs,
-                                                                               c_1=c_1, c_2=c_2, c=c,
-                                                                               rho=rho, init_alpha=step_length, lr_schdule=schedule)                                           
+                wolfe_II_list, goldstein_list, delta_weights_norm_list, delta_train_cost, delta_val_cost, train_gradient_norm_list, \
+                val_gradient_norm_list, train_r_2_list, train_adjust_r_2_list, val_r_2_list, \
+                val_adjust_r_2_list, train_mae_list, val_mae_list, inner_count_list = train_gradient_descent(x_train=x_train, y_train=y_train,
+                                                                                                             x_val=x_val, y_val=y_val, init_weights=copy.deepcopy(start_weights),
+                                                                                                             optimizer=optimizer, num_epochs=num_epochs,
+                                                                                                             c_1=c_1, c_2=c_2, c=c,
+                                                                                                             rho=rho, init_alpha=step_length, lr_schdule=schedule)                                           
 
                 result_weights[schedule][step_length][optimizer] = weights
                 result_min_train_cost[schedule][step_length][optimizer] = min_train_cost
@@ -458,6 +472,8 @@ if __name__ == "__main__":
                 result_min_val_cost_weights[schedule][step_length][optimizer] = min_val_cost_weights
                 result_train_cost_list[schedule][step_length][optimizer] = train_cost_list  
                 result_val_cost_list[schedule][step_length][optimizer] = val_cost_list
+                result_train_mae_list[schedule][step_length][optimizer] = train_mae_list  
+                result_val_mae_list[schedule][step_length][optimizer] = val_mae_list
                 result_time_epoch_list[schedule][step_length][optimizer] = time_epoch_list
                 result_wolfe_II_list[schedule][step_length][optimizer] = wolfe_II_list
                 result_goldstein_list[schedule][step_length][optimizer] = goldstein_list
@@ -476,6 +492,7 @@ if __name__ == "__main__":
                "min_train_cost": result_min_train_cost, "min_val_cost": result_min_val_cost, 
                "min_val_cost_weights": result_min_val_cost_weights, 
                "train_cost": result_train_cost_list, "val_cost": result_val_cost_list,
+               "train_mae": result_train_mae_list, "val_mae": result_val_mae_list,
                "time_epoch": result_time_epoch_list,
                "wolf_II": result_wolfe_II_list, "goldstein": result_goldstein_list,
                "delta_weights_norm": result_delta_weights_norm_list,
