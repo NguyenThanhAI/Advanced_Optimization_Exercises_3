@@ -177,6 +177,21 @@ def inverse_decay(init_alpha: float, t: int) -> float:
     return init_alpha / t
 
 
+def warmup_lr(steps: int, min_lr: float, max_lr: float, num_warmup_steps: int, num_total_steps: int) -> float:
+    if steps <= num_warmup_steps:
+        return min_lr + (max_lr - min_lr) * steps / (num_warmup_steps)
+    else:
+        return max_lr - (max_lr - min_lr) * (steps - num_warmup_steps) / (num_total_steps - num_warmup_steps)
+
+def cyclic_lr(steps: int, min_lr: float, max_lr: float, num_increase: int, num_decrease: int) -> float:
+    res_step = steps % (num_increase + num_decrease)
+
+    if res_step <= num_increase:
+        return min_lr + (max_lr - min_lr) * res_step / num_increase
+    else:
+        return max_lr - (max_lr - min_lr) * (res_step - num_increase) / (num_decrease)
+
+
 def check_wolfe_II(x: np.ndarray, w: np.ndarray, y: np.ndarray, alpha: float, p: np.ndarray, c_2: float=0.9) -> bool:
     new_gradient = derivative_cost_wrt_params(x=x, w=w+alpha*p, y=y)
     gradient = derivative_cost_wrt_params(x=x, w=w, y=y)
