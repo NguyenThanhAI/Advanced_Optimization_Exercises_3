@@ -23,7 +23,7 @@ from utils import AverageMeter, amsgrad_step, exponential_moving_average, predic
     adam_step, adamax_step, adabelief_step, adagrad_step, \
     rmsprop_step, momentum_step, adadelta_step, nadam_step, inverse_decay, \
     newton_step, accelerated_gradient_step, radam_step, bfgs_post_step, dfp_post_step, \
-    avagrad_step, calculate_R, compute_mae
+    avagrad_step, calculate_R, compute_mae, warmup_lr, cyclic_lr
 
 
 
@@ -257,6 +257,12 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
         elif lr_schdule == "inverse_decay":
             alpha = inverse_decay(init_alpha=init_alpha, t=t)
             inner_count_list.append(1)
+        elif lr_schdule == "warmup":
+            alpha = warmup_lr(steps=t, min_lr=1e-5, max_lr=init_alpha, num_warmup_steps=500, num_total_steps=num_epochs)
+            inner_count_list.append(1)
+        elif lr_schdule == "cyclic":
+            alpha = cyclic_lr(steps=t, min_lr=1e-5, max_lr=init_alpha, num_increase=500, num_decrease=500)
+            inner_count_list.append(1)
         else:
             raise ValueError("{} scheduler is not supported".format(lr_schdule))
         
@@ -313,7 +319,8 @@ def train_gradient_descent(x_train: np.ndarray, y_train: np.ndarray, x_val: np.n
         val_r_2_list.append(val_r_2)
         val_adjust_r_2_list.append(val_adjust_r_2)
 
-        if (epoch + 1) % 10000 == 0:
+        #if (epoch + 1) % 10000 == 0:
+        if (epoch + 1) % 2500 == 0:
             #print(epoch, alpha, train_cost, val_cost, train_acc, val_acc, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost), np.linalg.norm(dweights))
             print(epoch, train_cost, val_cost, train_mae, val_mae, np.linalg.norm(weights - prev_weights), np.abs(prev_train_cost - train_cost)/train_cost, np.linalg.norm(dweights), np.linalg.norm(val_dweights), train_r_2, train_adjust_r_2, val_r_2, val_adjust_r_2)
 
@@ -359,7 +366,8 @@ if __name__ == "__main__":
     normalize = "minmax"
     use_bias = True
     initializer = "xavier"
-    num_epochs = 20000
+    #num_epochs = 20000
+    num_epochs = 5000
     c_1 = 1e-2
     c_2 = 0.9
     c = 0.25
@@ -396,13 +404,14 @@ if __name__ == "__main__":
     if not os.path.exists(save_dir):
         os.makedirs(save_dir, exist_ok=True)
 
-    lr_schedule_list = ["backtracking", "fixed", "inverse_decay"]
+    #lr_schedule_list = ["backtracking", "fixed", "inverse_decay"]
+    lr_schedule_list = ["warmup", "cyclic", "backtracking", "fixed", "inverse_decay"]
 
     step_length_list = [1e-4, 1e-3, 1e-2, 1e-1, 1, 2, 5, 10]
 
-    #optimizer_list = ["gd", "Accelerated", "BFGS", "DFP", "Adam", "Avagrad", "RAdam", "Momentum", 
-    #                  "Adagrad", "RMSProp", "Adadelta", "Adamax", "Nadam", "AMSGrad", "AdaBelief"]
-    optimizer_list = ["gd", "Newton", "Accelerated", "BFGS", "DFP"]
+    optimizer_list = ["gd", "Newton", "Accelerated", "BFGS", "DFP", "Adam", "Avagrad", "RAdam", "Momentum", 
+                      "Adagrad", "RMSProp", "Adadelta", "Adamax", "Nadam", "AMSGrad", "AdaBelief"]
+    #optimizer_list = ["gd", "Newton", "Accelerated", "BFGS", "DFP"]
 
     #x_train, y_train, x_val, y_val, x_test, y_test = create_data(csv_path=csv_path, normalize=normalize, use_bias=use_bias)
     x_train, x_val, y_train, y_val = create_data(csv_path=csv_path, normalize=normalize, use_bias=use_bias)
